@@ -1,0 +1,212 @@
+﻿[
+  {
+    "id": 2,
+    "name": "HP LAPTOPS",
+    "stock": 6,
+    "price": 50000.0,
+    "discount_percentage": 50.0
+  },
+  {
+    "id": 4,
+    "name": "MacBook Pro M3",
+    "stock": 36,
+    "price": 199900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 12,
+    "name": "Sony WH-1000XM5",
+    "stock": 26,
+    "price": 29990.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 17,
+    "name": "Samsung Galaxy S23 Ultra",
+    "stock": 15,
+    "price": 124999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 19,
+    "name": "iPhone 15 Pro",
+    "stock": 5,
+    "price": 134900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 20,
+    "name": "Sony PlayStation 5",
+    "stock": 12,
+    "price": 54990.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 61,
+    "name": "iPhone 13 Pro",
+    "stock": 25,
+    "price": 89999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 62,
+    "name": "iPhone X",
+    "stock": 15,
+    "price": 45000.0,
+    "discount_percentage": 25.0
+  },
+  {
+    "id": 63,
+    "name": "iPhone 5s",
+    "stock": 5,
+    "price": 15000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 64,
+    "name": "iPhone 6",
+    "stock": 12,
+    "price": 20000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 65,
+    "name": "Oppo F19 Pro Plus",
+    "stock": 26,
+    "price": 25990.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 66,
+    "name": "Oppo A57",
+    "stock": 22,
+    "price": 14990.0,
+    "discount_percentage": 50.0
+  },
+  {
+    "id": 67,
+    "name": "Realme C35",
+    "stock": 34,
+    "price": 11999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 68,
+    "name": "Realme X",
+    "stock": 18,
+    "price": 17999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 69,
+    "name": "MacBook Pro 14",
+    "stock": 10,
+    "price": 169900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 70,
+    "name": "Asus Zenbook Pro Duo",
+    "stock": 8,
+    "price": 145000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 71,
+    "name": "Huawei Matebook X Pro",
+    "stock": 12,
+    "price": 125000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 72,
+    "name": "Lenovo Yoga 920",
+    "stock": 14,
+    "price": 110000.0,
+    "discount_percentage": 10.0
+  },
+  {
+    "id": 73,
+    "name": "Dell XPS 13 9300",
+    "stock": 8,
+    "price": 134900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 74,
+    "name": "iPad Mini 2021",
+    "stock": 20,
+    "price": 45900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 75,
+    "name": "Samsung Galaxy Tab S8+",
+    "stock": 14,
+    "price": 65999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 76,
+    "name": "Samsung Galaxy Tab A8",
+    "stock": 32,
+    "price": 18999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 77,
+    "name": "iPhone 13 Pro Max",
+    "stock": 10,
+    "price": 99999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 78,
+    "name": "MacBook Pro 16",
+    "stock": 2,
+    "price": 249900.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 79,
+    "name": "Asus Zenbook Flip",
+    "stock": 11,
+    "price": 95000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 80,
+    "name": "Samsung Galaxy Tab S9 Ultra",
+    "stock": 10,
+    "price": 105999.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 86,
+    "name": "VR Headsets",
+    "stock": 10,
+    "price": 50000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 87,
+    "name": "Gaming Laptop Pro",
+    "stock": 13,
+    "price": 45000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 89,
+    "name": "Test Gadget Pro",
+    "stock": 17,
+    "price": 1000.0,
+    "discount_percentage": 0.0
+  },
+  {
+    "id": 90,
+    "name": "HP Chromebook 15A-Nb0006na 15.6\" Laptop",
+    "stock": 15,
+    "price": 350000.0,
+    "discount_percentage": 7.0
+  }
+]

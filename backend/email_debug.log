@@ -1,0 +1,124 @@
+GENERAL ERROR: 'User' object has no attribute 'username'
+GENERAL ERROR: 'User' object has no attribute 'username'
+GENERAL ERROR: 'User' object has no attribute 'username'
+
+--- New Message at 2026-02-02 06:50:55.285937+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+
+--- New Message at 2026-02-02 06:50:57.121659+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+
+--- New Message at 2026-02-02 06:50:57.799849+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully!
+Email sent successfully!
+Email sent successfully!
+
+--- New Message at 2026-02-02 06:52:52.341287+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully!
+
+--- New Message at 2026-02-02 06:56:10.873458+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+
+--- New Message at 2026-02-02 06:56:12.764405+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully!
+Email sent successfully!
+
+--- New Message at 2026-02-02 06:56:57.576908+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+
+--- New Message at 2026-02-02 06:56:59.233392+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully!
+Email sent successfully!
+
+--- New Message at 2026-02-02 06:58:38.078930+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+
+--- New Message at 2026-02-02 06:58:40.539314+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully!
+Email sent successfully!
+
+--- New Message at 2026-02-02 06:59:40.547131+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully!
+
+--- New Message at 2026-02-02 07:02:06.569789+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-02 07:07:04.563064+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-02 07:10:00.414775+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-02 07:14:20.602225+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-02 07:15:57.427481+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-02 07:18:11.327355+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-03 04:00:57.861612+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Found 2 admin users. Recipients: ['smartinventory05@gmail.com', 'testadmin@example.com']
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-03 04:02:31.989915+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
+
+--- New Message at 2026-02-03 04:03:17.559715+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-05 03:15:35.321772+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
+
+--- New Message at 2026-02-05 03:29:44.303400+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-05 17:01:59.710037+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
+
+--- New Message at 2026-02-10 07:43:31.909727+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-12 17:40:37.029670+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
+
+--- New Message at 2026-02-12 18:32:47.201407+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!
+
+--- New Message at 2026-02-25 10:18:22.075325+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
