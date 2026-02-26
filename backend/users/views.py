@@ -651,7 +651,7 @@ def create_purchase_order(request):
         if existing_order:
             return Response({
                 "invoice_no": existing_order.invoice_no,
-                "total": existing_order.total_amount,
+                "total_amount": existing_order.total_amount,
                 "message": "Order already processed (Duplicate Request)."
             }, status=200)
 
@@ -752,7 +752,7 @@ INVORA Purchase Team
         "id": order.id,
         "invoice_no": invoice,
         "vendor_name": vendor.name,
-        "total": float(total),
+        "total_amount": float(total),
         "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
         "items": items_data,
         "message": "Purchase successful! Stock updated & Email Sent."
@@ -1149,3 +1149,103 @@ def sales_prediction(request):
         return Response({"message": str(e)}, status=500)
 
 
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def download_invoice(request, id):
+    try:
+        from django.http import HttpResponse
+        from django.template.loader import render_to_string
+        
+        order = SalesOrder.objects.get(id=id)
+        
+        # Check permission: assigned staff or admin
+        if request.user.role != "admin" and order.staff != request.user:
+            return Response({"message": "Unauthorized"}, status=403)
+            
+        context = {
+            "order": order,
+            "items": order.items.all(),
+            "date": order.created_at.strftime("%B %d, %Y")
+        }
+        
+        # A simple HTML template for the invoice
+        invoice_html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; color: #333; }}
+                .invoice-box {{ max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, .15); }}
+                .header {{ display: flex; justify-content: space-between; margin-bottom: 20px; }}
+                .title {{ font-size: 24px; font-weight: bold; color: #0a3a52; }}
+                .info {{ margin-bottom: 20px; }}
+                table {{ width: 100%; border-collapse: collapse; }}
+                th {{ background: #f8f9fa; text-align: left; padding: 10px; border-bottom: 2px solid #eee; }}
+                td {{ padding: 10px; border-bottom: 1px solid #eee; }}
+                .total {{ text-align: right; padding: 20px 0; font-size: 18px; font-weight: bold; color: #2ecc71; }}
+                .footer {{ margin-top: 50px; text-align: center; color: #999; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="invoice-box">
+                <div class="header">
+                    <div class="title">INVORA INVOICE</div>
+                    <div>Date: {context['date']}</div>
+                </div>
+                
+                <div class="info">
+                    <strong>Invoice No:</strong> #ORD-{order.id}<br>
+                    <strong>Customer:</strong> {order.customer_name}<br>
+                    <strong>Email:</strong> {order.customer_email}<br>
+                    <strong>Payment:</strong> {order.payment_method}
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """
+        
+        for item in context['items']:
+            invoice_html += f"""
+                <tr>
+                    <td>{item.product.name}</td>
+                    <td>{item.quantity}</td>
+                    <td>Rs. {item.price}</td>
+                    <td>Rs. {item.quantity * item.price}</td>
+                </tr>
+            """
+            
+        invoice_html += f"""
+                    </tbody>
+                </table>
+                
+                <div class="total">
+                    Total Amount: Rs. {order.total_amount}<br>
+                    Discount: - Rs. {order.discount_amount}<br>
+                    Final Total: Rs. {order.final_total}
+                </div>
+                
+                <div class="footer">
+                    Thank you for shopping with INVORA!<br>
+                    This is a computer-generated invoice.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        response = HttpResponse(invoice_html, content_type="text/html")
+        response["Content-Disposition"] = f'attachment; filename="invoice_{order.id}.html"'
+        return response
+        
+    except SalesOrder.DoesNotExist:
+        return Response({"message": "Order not found"}, status=404)
+    except Exception as e:
+        return Response({"message": str(e)}, status=500)

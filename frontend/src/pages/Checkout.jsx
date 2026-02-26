@@ -8,6 +8,7 @@ import { styles as homeStyles } from "./HomeStyles";
 import CustomAlert from "../components/CustomAlert";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { applyInvoiceHeader, applyInvoiceFooter, getInvoiceTableStyles, drawTotalSection } from "../utils/invoiceDesign";
 
 const API = `http://${window.location.hostname}:8000/api`;
 
@@ -125,42 +126,17 @@ function Checkout() {
         }
     };
 
+
+
     const downloadInvoice = () => {
         const doc = new jsPDF();
-
-        // Logo
-        // Logo removed from PDF
-
-        doc.setTextColor(10, 58, 82);
-        doc.setFontSize(20);
-        doc.text("INVORA INVOICE", 195, 25, null, null, "right");
-
-        doc.setDrawColor(52, 152, 219);
-        doc.setLineWidth(1);
-        doc.line(15, 35, 195, 35);
-
-        doc.setTextColor(80);
-        doc.setFontSize(11);
-
         const date = new Date().toLocaleDateString();
 
-        doc.text(`Order ID:`, 15, 50);
-        doc.setFont(undefined, 'bold');
-        doc.text(`#${orderId}`, 45, 50);
-        doc.setFont(undefined, 'normal');
-
-        doc.text(`Date:`, 15, 58);
-        doc.text(`${date}`, 45, 58);
-
-        doc.text(`Customer:`, 15, 66);
-        doc.text(`${form.customer_name}`, 45, 66);
-
-        doc.text(`Email:`, 15, 74);
-        doc.text(`${form.customer_email}`, 45, 74);
+        // Use shared header
+        applyInvoiceHeader(doc, "CUSTOMER INVOICE", orderId, date, "Customer", form.customer_name);
 
         const tableColumn = ["Product", "Qty", "Unit Price", "Total"];
         const tableRows = [];
-
         let calculatedSubtotal = 0;
 
         cart.forEach(item => {
@@ -175,57 +151,28 @@ function Checkout() {
                 priceText += `\n(Reg: Rs. ${originalPrice.toLocaleString('en-IN')})`;
             }
 
-            const orderData = [
+            tableRows.push([
                 item.name,
                 qty,
                 priceText,
                 `Rs. ${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-            ];
-            tableRows.push(orderData);
+            ]);
         });
 
-        const totalPaid = calculatedSubtotal;
-
         autoTable(doc, {
+            ...getInvoiceTableStyles(),
             head: [tableColumn],
             body: tableRows,
             startY: 85,
-            theme: 'grid',
-            styles: {
-                fillColor: [255, 255, 255],
-                textColor: [50, 50, 50],
-                lineColor: [200, 200, 200],
-                lineWidth: 0.1,
-            },
-            headStyles: {
-                fillColor: [10, 58, 82],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold'
-            },
-            alternateRowStyles: {
-                fillColor: [240, 248, 251]
-            }
         });
 
         const finalY = doc.lastAutoTable.finalY + 15;
 
-        // Total Amount Box
-        doc.setFillColor(240, 248, 251);
-        doc.rect(130, finalY - 10, 65, 30, 'F');
+        // Use shared total section
+        drawTotalSection(doc, finalY, calculatedSubtotal, calculatedSubtotal, "Total Paid");
 
-        doc.setFontSize(10);
-        doc.setTextColor(50);
-        doc.text(`Subtotal:`, 135, finalY);
-        doc.text(`Rs. ${calculatedSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 190, finalY, { align: "right" });
-
-        doc.setFontSize(12);
-        doc.setTextColor(10, 58, 82);
-        doc.setFont(undefined, 'bold');
-        doc.text(`Total Paid:`, 135, finalY + 14);
-
-        doc.setFontSize(14);
-        doc.setTextColor(52, 152, 219);
-        doc.text(`Rs. ${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 190, finalY + 14, { align: "right" });
+        // Use shared footer
+        applyInvoiceFooter(doc);
 
         doc.save(`Invoice_${orderId}.pdf`);
     };

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 // logo import removed
 import CustomAlert from "../components/CustomAlert";
+import { applyInvoiceHeader, applyInvoiceFooter, getInvoiceTableStyles, drawTotalSection } from "../utils/invoiceDesign";
 
 // Add keyframe animations to document
 const style = document.createElement('style');
@@ -64,116 +67,42 @@ style.textContent = `
     transform: scale(1.01);
   }
   
-  .table-row-hover {
-    transition: background 0.2s ease;
+  .sidebar-button-active {
+    background: #1c4e69 !important;
+    border-left: 4px solid #3498db !important;
+    color: #fff !important;
   }
-  
-  .table-row-hover:hover {
-    background: rgba(52, 152, 219, 0.04) !important;
+
+  .sidebar-button-hover:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
   }
-  
-  .product-card {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .order-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
   }
-  
-  .product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 28px rgba(10, 58, 82, 0.1);
-    border-color: #3498db;
+
+  @media (max-width: 900px) {
+    .order-card-grid {
+      grid-template-columns: 1fr;
+    }
   }
-  
-  .card-hover {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .card-hover:hover {
-    border-color: #3498db;
-    background: white;
-    box-shadow: 0 8px 24px rgba(52, 152, 219, 0.12);
-  }
-  
-  .loading-skeleton {
-    background: linear-gradient(90deg, #f8fafc 25%, #e6f0f5 50%, #f8fafc 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.2s ease-in-out infinite;
-  }
-  
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-  
-  .badge-pulse {
-    animation: glow 2s ease-in-out infinite;
-  }
-  
-  .sidebar-button {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .sidebar-button:hover {
-    background: rgba(52, 152, 219, 0.3) !important;
-    transform: translateX(3px);
-  }
-  
-  .ripple {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .ripple:after {
-    content: "";
-    display: block;
-    position: absolute;
+
+  .view-details-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
     width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    background: radial-gradient(circle, rgba(52,152,219,0.2) 10%, transparent 10.01%);
-    background-repeat: no-repeat;
-    background-position: 50%;
-    transform: scale(10, 10);
-    opacity: 0;
-    transition: transform .3s, opacity .6s;
-  }
-  
-  .ripple:active:after {
-    transform: scale(0, 0);
-    opacity: 0.2;
-    transition: 0s;
-  }
-  
-  .glass-morphism {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(52, 152, 219, 0.15);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
   }
 
-  /* Responsive Overrides */
-  @media (max-width: 1200px) {
-    .sidebar-responsive {
-      width: 240px !important;
-    }
-    .content-responsive {
-      padding: 25px 30px !important;
-    }
-  }
-
-  @media (max-width: 992px) {
-    .sidebar-responsive {
-      width: 220px !important;
-      padding: 20px 15px !important;
-    }
-    .content-responsive {
-      padding: 20px !important;
-    }
-    .page-title-responsive {
-      font-size: 26px !important;
-    }
+  .view-details-btn:hover {
+    background: #2980b9;
   }
 `;
 document.head.appendChild(style);
@@ -271,6 +200,44 @@ function StaffDashboard() {
         if (updated) setSelectedOrder(updated);
       }
     } catch (e) { console.error(e); }
+  };
+
+
+
+  const handleDownloadPDF = (order) => {
+    const doc = new jsPDF();
+    const date = new Date(order.created_at).toLocaleDateString();
+
+    // Use shared header
+    applyInvoiceHeader(doc, "SALES INVOICE", order.id, date, "Customer", order.customer_name);
+
+    const tableColumn = ["ITEM DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
+    const tableRows = order.items.map(item => {
+      const lineTotal = item.price * item.quantity;
+      return [
+        item.product_name,
+        item.quantity,
+        `Rs. ${Number(item.price).toLocaleString('en-IN')}`,
+        `Rs. ${Number(lineTotal).toLocaleString('en-IN')}`
+      ];
+    });
+
+    autoTable(doc, {
+      ...getInvoiceTableStyles(),
+      head: [tableColumn],
+      body: tableRows,
+      startY: 85,
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 15;
+
+    // Use shared total section
+    drawTotalSection(doc, finalY, null, order.total_amount, "Total Amount");
+
+    // Use shared footer
+    applyInvoiceFooter(doc);
+
+    doc.save(`Invoice_${order.id}.pdf`);
   };
 
   const completeOrder = async (orderId) => {
@@ -438,7 +405,7 @@ function StaffDashboard() {
         left: isSidebarOpen ? "0" : "-100%"
       }} className={`sidebar ${isSidebarOpen ? "mobile-open" : ""}`}>
         <div style={sidebarHeader}>
-          <h3 style={{ color: "#fff", margin: 0, fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <h3 style={{ color: "#fff", margin: 0, fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "left", paddingLeft: "10px" }}>
             <span style={pulseDot}></span>
             Staff Panel
           </h3>
@@ -455,20 +422,14 @@ function StaffDashboard() {
           ].map(item => (
             <button
               key={item.key}
+              className={`sidebar-button-hover ${activeTab === item.key ? 'sidebar-button-active' : ''}`}
               style={{
                 ...sideButton,
-                background: activeTab === item.key ? "rgba(52, 152, 219, 0.5)" : "rgba(52, 152, 219, 0.2)",
-                transform: activeTab === item.key ? 'translateX(5px)' : 'translateX(0)',
-                boxShadow: activeTab === item.key ? '0 5px 15px rgba(52,152,219,0.3)' : 'none',
-                borderLeft: activeTab === item.key ? '5px solid #1abc9c' : '1px solid rgba(255,255,255,0.1)',
+                background: activeTab === item.key ? "#1c4e69" : "transparent",
+                borderLeft: activeTab === item.key ? '4px solid #3498db' : '4px solid transparent',
                 transition: 'all 0.25s ease'
               }}
               onClick={() => setActiveTab(item.key)}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(52, 152, 219, 0.5)'; e.currentTarget.style.transform = 'translateX(5px)'; }}
-              onMouseLeave={(e) => {
-                if (activeTab !== item.key) e.currentTarget.style.background = 'rgba(52, 152, 219, 0.2)';
-                e.currentTarget.style.transform = activeTab === item.key ? 'translateX(5px)' : 'translateX(0)';
-              }}
             >
               {item.icon} {item.label}
             </button>
@@ -479,8 +440,6 @@ function StaffDashboard() {
           <button
             style={logoutButton}
             onClick={logout}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(231, 76, 60, 0.3)'; e.currentTarget.style.borderColor = '#e74c3c'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
           >
             🚪 Logout
           </button>
@@ -709,124 +668,203 @@ function StaffDashboard() {
         {activeTab === "orders" && (
           <div style={{ ...fadeAnim, ...ordersPageStyle }}>
             {selectedOrder ? (
-              <div style={orderDetailContainer}>
+              <div style={fadeAnim}>
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  style={backButton}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-8px)'}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#3498db',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    marginBottom: '20px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(-5px)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
                 >
                   ← Back to Orders
                 </button>
 
-                <div style={orderDetailCard}>
-                  <div style={orderDetailHeader}>
-                    <h3 style={orderDetailTitle}>Order #{selectedOrder.id}</h3>
-                    <span style={orderDateBadge}>
-                      {new Date(selectedOrder.created_at).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
+                <div style={{
+                  background: '#fff',
+                  borderRadius: '30px',
+                  padding: '40px',
+                  boxShadow: '0 10px 40px rgba(10, 58, 82, 0.05)',
+                  position: 'relative'
+                }}>
+                  {/* Order Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <h2 style={{ fontSize: '32px', fontWeight: '800', color: '#0a3a52', margin: 0 }}>
+                        Order #{selectedOrder.id}
+                      </h2>
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#666',
+                        padding: '6px 16px',
+                        borderRadius: '30px',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}>
+                        {new Date(selectedOrder.created_at).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDownloadPDF(selectedOrder)}
+                      style={{
+                        background: '#3498db',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                      className="hover-lift"
+                    >
+                      📄 Download Invoice
+                    </button>
                   </div>
 
-                  <div style={orderInfoGrid}>
-                    <div style={orderInfoItem}>
-                      <span style={orderInfoLabel}>Customer</span>
-                      <span style={orderInfoValue}>{selectedOrder.customer_name}</span>
+                  {/* Info Row: Customer, Amount, Status */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '40px', marginBottom: '50px' }}>
+                    <div>
+                      <span style={{ fontSize: '13px', color: '#999', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
+                        Customer
+                      </span>
+                      <span style={{ fontSize: '20px', fontWeight: '700', color: '#0a3a52' }}>
+                        {selectedOrder.customer_name}
+                      </span>
                     </div>
-                    <div style={orderInfoItem}>
-                      <span style={orderInfoLabel}>Total Amount</span>
-                      <span style={orderInfoValueLarge}>₹{selectedOrder.total_amount}</span>
+                    <div>
+                      <span style={{ fontSize: '13px', color: '#999', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
+                        Total Amount
+                      </span>
+                      <span style={{ fontSize: '32px', fontWeight: '900', color: '#2ecc71' }}>
+                        ₹{selectedOrder.total_amount}
+                      </span>
                     </div>
-                    <div style={orderInfoItem}>
-                      <span style={orderInfoLabel}>Status</span>
+                    <div>
+                      <span style={{ fontSize: '13px', color: '#999', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>
+                        Status
+                      </span>
                       <span style={{
-                        ...orderStatusBadge,
                         background: selectedOrder.status === 'completed' ? '#e8f5e9' : '#fff3e0',
-                        color: selectedOrder.status === 'completed' ? '#2e7d32' : '#ef6c00'
+                        color: selectedOrder.status === 'completed' ? '#2ecc71' : '#f39c12',
+                        padding: '8px 20px',
+                        borderRadius: '30px',
+                        fontSize: '14px',
+                        fontWeight: '700',
                       }}>
                         {selectedOrder.status ? selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1) : "Processing"}
                       </span>
                     </div>
                   </div>
 
-                  {selectedOrder.status === 'processing' && (
-                    <button
-                      onClick={() => completeOrder(selectedOrder.id)}
-                      style={{
-                        ...actionBtn,
-                        background: 'linear-gradient(145deg, #2ecc71, #27ae60)',
-                        color: 'white',
-                        padding: '12px 25px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        fontWeight: '700',
-                        fontSize: '15px',
-                        cursor: 'pointer',
-                        boxShadow: '0 8px 20px rgba(46, 204, 113, 0.25)',
-                        marginBottom: '30px',
-                        width: 'auto',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                      }}
-                      className="hover-lift"
-                    >
-                      ✅ Mark as Completed
-                    </button>
-                  )}
-
-                  <div style={orderItemsSection}>
-                    <h4 style={orderItemsTitle}>Order Items</h4>
-                    <div style={orderItemsList}>
+                  {/* Order Items */}
+                  <div style={{ marginBottom: '40px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#0a3a52', marginBottom: '25px' }}>Order Items</h3>
+                    <div style={{ background: '#f8fafc', borderRadius: '20px', padding: '10px' }}>
                       {selectedOrder.items.map((item, idx) => (
-                        <div key={idx} style={orderItemRow}>
-                          <span style={orderItemName}>{item.product_name}</span>
-                          <span style={orderItemQuantity}>{item.quantity} x</span>
-                          <span style={orderItemPrice}>₹{item.price}</span>
-                          <span style={orderItemTotal}>₹{item.quantity * item.price}</span>
+                        <div key={idx} style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 100px 150px 150px',
+                          padding: '15px 20px',
+                          borderBottom: idx === selectedOrder.items.length - 1 ? 'none' : '1px solid #eef2f6',
+                          alignItems: 'center'
+                        }}>
+                          <span style={{ fontWeight: '600', color: '#0a3a52', fontSize: '16px' }}>{item.product_name}</span>
+                          <span style={{ color: '#666', textAlign: 'center' }}>{item.quantity} x</span>
+                          <span style={{ color: '#666', textAlign: 'right' }}>₹{item.price}</span>
+                          <span style={{ fontWeight: '700', color: '#2ecc71', textAlign: 'right' }}>₹{item.quantity * item.price}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {selectedOrder.feedback ? (
-                    <div style={feedbackCard}>
-                      <div style={feedbackHeader}>
-                        <span style={feedbackIcon}>
-                          {selectedOrder.feedback.rating === 1 && "😠"}
-                          {selectedOrder.feedback.rating === 2 && "😞"}
-                          {selectedOrder.feedback.rating === 3 && "😐"}
-                          {selectedOrder.feedback.rating === 4 && "😊"}
-                          {selectedOrder.feedback.rating === 5 && "🔥"}
-                        </span>
-                        <span style={feedbackTitle}>Customer Feedback</span>
-                        <span style={feedbackRating}>{selectedOrder.feedback.rating}/5</span>
-                      </div>
-                      <p style={feedbackComment}>"{selectedOrder.feedback.comment}"</p>
-                    </div>
-                  ) : (
-                    <div style={noFeedbackCard}>
-                      <span>💬 No feedback yet</span>
+                  {/* Conditional Actions */}
+                  {selectedOrder.status === 'processing' && (
+                    <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
+                      <button
+                        onClick={() => completeOrder(selectedOrder.id)}
+                        style={{
+                          background: 'linear-gradient(145deg, #2ecc71, #27ae60)',
+                          color: 'white',
+                          padding: '14px 30px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          fontWeight: '700',
+                          fontSize: '15px',
+                          cursor: 'pointer',
+                          boxShadow: '0 8px 20px rgba(46, 204, 113, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}
+                        className="hover-lift"
+                      >
+                        ✅ Mark as Completed
+                      </button>
                     </div>
                   )}
+
+                  {/* Feedback Section */}
+                  <div style={{ marginTop: '50px' }}>
+                    {selectedOrder.feedback ? (
+                      <div style={{ background: '#fff9e6', borderRadius: '20px', padding: '25px', border: '1px solid #ffecb3' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '24px' }}>
+                            {selectedOrder.feedback.rating === 5 ? "🔥" : "⭐"}
+                          </span>
+                          <h4 style={{ margin: 0, fontSize: '18px', color: '#0a3a52' }}>Customer Feedback</h4>
+                          <span style={{ marginLeft: 'auto', color: '#f39c12', fontWeight: '700' }}>{selectedOrder.feedback.rating}/5</span>
+                        </div>
+                        <p style={{ margin: 0, fontStyle: 'italic', color: '#555', lineHeight: '1.6' }}>"{selectedOrder.feedback.comment}"</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', background: '#f8fafc', borderRadius: '20px', color: '#999', gap: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>💬</span>
+                        <span>No feedback yet</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
               <>
-                <div style={pageHeader}>
+                <div style={{ ...pageHeader, alignItems: 'center', marginBottom: '40px' }}>
                   <div>
-                    <h2 style={pageTitle}>🛍️ My Assigned Orders</h2>
-                    <p style={pageSubtitle}>Track and manage your customer orders</p>
+                    <h2 style={{ ...pageTitle, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '32px' }}>🛍️</span> My Assigned Orders
+                    </h2>
+                    <p style={{ ...pageSubtitle, margin: 0 }}>Track and manage your customer orders</p>
                   </div>
-                  <div style={orderStatsBadge}>
-                    <span>Active Orders: <strong>{orders.length}</strong></span>
+                  <div style={{
+                    background: '#fff',
+                    padding: '8px 20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    color: '#0a3a52',
+                    fontWeight: '700',
+                    fontSize: '14px'
+                  }}>
+                    Active Orders: {orders.length}
                   </div>
                 </div>
 
-                <div style={orderCardsGrid}>
+                <div className="order-card-grid">
                   {orders.length === 0 ? (
                     <div style={emptyStateCard}>
                       <span style={{ fontSize: '40px' }}>🛍️</span>
@@ -837,49 +875,66 @@ function StaffDashboard() {
                       <div
                         key={o.id}
                         style={{
-                          ...orderCard,
-                          animation: `fadeInUp 0.4s ease ${idx * 0.05}s both`,
+                          background: '#fff',
+                          borderRadius: '20px',
+                          padding: '24px',
+                          boxShadow: '0 10px 30px rgba(10, 58, 82, 0.05)',
+                          transition: 'all 0.3s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '20px',
+                          border: '1px solid rgba(10, 58, 82, 0.05)'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-5px)';
+                          e.currentTarget.style.boxShadow = '0 15px 40px rgba(10, 58, 82, 0.08)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 10px 30px rgba(10, 58, 82, 0.05)';
+                        }}
                       >
-                        <div style={orderCardHeader}>
-                          <span style={orderId}>#{o.id}</span>
-                          <span style={orderDate}>{new Date(o.created_at).toLocaleDateString()}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '18px', fontWeight: '800', color: '#0a3a52' }}>#{o.id}</span>
+                          <span style={{ fontSize: '13px', color: '#999', fontWeight: '500' }}>
+                            {new Date(o.created_at).toLocaleDateString()}
+                          </span>
                         </div>
 
-                        <div style={orderCardBody}>
-                          <div style={orderCustomer}>
-                            <span style={orderCustomerIcon}>👤</span>
-                            <span style={orderCustomerName}>{o.customer_name}</span>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <div style={orderAmount}>₹{o.total_amount}</div>
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              marginTop: '5px',
-                              background: o.status === 'completed' ? '#e8f5e9' : '#fff3e0',
-                              color: o.status === 'completed' ? '#2e7d32' : '#ef6c00',
-                              textTransform: 'uppercase'
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '12px',
+                              background: '#f0f4f8',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '20px',
+                              color: '#3498db'
                             }}>
-                              {o.status || 'Processing'}
-                            </span>
+                              👤
+                            </div>
+                            <span style={{ fontSize: '16px', fontWeight: '700', color: '#0a3a52' }}>{o.customer_name}</span>
+                          </div>
+                          <div style={{ fontSize: '24px', fontWeight: '900', color: '#2ecc71' }}>
+                            ₹{o.total_amount}
                           </div>
                         </div>
 
-                        <div style={orderCardFooter}>
-                          <button
-                            onClick={() => setSelectedOrder(o)}
-                            style={viewOrderButton}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#2980b9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#3498db'; e.currentTarget.style.transform = 'scale(1)'; }}
-                          >
-                            View Details →
-                          </button>
-                        </div>
+                        {o.feedback && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#f39c12', fontWeight: '600' }}>
+                            ⭐ Customer Feedback
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setSelectedOrder(o)}
+                          className="view-details-btn"
+                        >
+                          View Details →
+                        </button>
                       </div>
                     ))
                   )}
@@ -1518,7 +1573,7 @@ const stockIndicator = {
 const productGrid = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '30px',
+  gap: '40px',
   marginTop: '20px'
 };
 
@@ -1718,156 +1773,8 @@ const viewOrderButton = {
   transition: 'all 0.2s ease'
 };
 
-// Order Detail Styles
-const orderDetailContainer = {
-  animation: 'fadeIn 0.4s ease'
-};
+// Order Detail Styles - [REMOVED IN FAVOR OF INLINE STYLES IN REDESIGN]
 
-const backButton = {
-  marginBottom: '25px',
-  background: 'none',
-  border: 'none',
-  color: '#3498db',
-  cursor: 'pointer',
-  fontSize: '16px',
-  fontWeight: '600',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '5px',
-  transition: 'transform 0.2s',
-  padding: '10px 15px',
-  borderRadius: '10px'
-};
-
-const orderDetailCard = {
-  background: '#fff',
-  borderRadius: '30px',
-  padding: '35px',
-  boxShadow: '0 20px 40px rgba(10, 58, 82, 0.08)'
-};
-
-const orderDetailHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '30px',
-  paddingBottom: '20px',
-  borderBottom: '2px solid #f0f0f0'
-};
-
-const orderDetailTitle = {
-  fontSize: '28px',
-  fontWeight: '800',
-  color: '#0a3a52',
-  margin: 0
-};
-
-const orderDateBadge = {
-  background: '#f8f9fa',
-  padding: '8px 16px',
-  borderRadius: '30px',
-  color: '#666',
-  fontSize: '14px',
-  fontWeight: '500'
-};
-
-const orderInfoGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: '25px',
-  marginBottom: '35px'
-};
-
-const orderInfoItem = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px'
-};
-
-const orderInfoLabel = {
-  fontSize: '13px',
-  color: '#999',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px'
-};
-
-const orderInfoValue = {
-  fontSize: '18px',
-  fontWeight: '600',
-  color: '#0a3a52'
-};
-
-const orderInfoValueLarge = {
-  fontSize: '32px',
-  fontWeight: '800',
-  color: '#27ae60'
-};
-
-const orderStatusBadge = {
-  background: '#fff9e6',
-  color: '#f39c12',
-  padding: '6px 16px',
-  borderRadius: '30px',
-  fontSize: '14px',
-  fontWeight: '600',
-  display: 'inline-block'
-};
-
-const orderItemsSection = {
-  marginBottom: '35px'
-};
-
-const orderItemsTitle = {
-  fontSize: '20px',
-  color: '#0a3a52',
-  marginBottom: '20px',
-  fontWeight: '700'
-};
-
-const orderItemsList = {
-  background: '#fafafa',
-  borderRadius: '20px',
-  padding: '20px'
-};
-
-const orderItemRow = {
-  display: 'grid',
-  gridTemplateColumns: '2fr 0.5fr 1fr 1fr',
-  gap: '15px',
-  padding: '12px 0',
-  borderBottom: '1px solid #eee',
-  alignItems: 'center'
-};
-
-const orderItemName = {
-  fontWeight: '600',
-  color: '#0a3a52'
-};
-
-const orderItemQuantity = {
-  color: '#666',
-  textAlign: 'center'
-};
-
-const orderItemPrice = {
-  color: '#666',
-  textAlign: 'right'
-};
-
-const orderItemTotal = {
-  fontWeight: '700',
-  color: '#27ae60',
-  textAlign: 'right'
-};
-
-const noFeedbackCard = {
-  background: '#f8f9fa',
-  padding: '25px',
-  borderRadius: '20px',
-  textAlign: 'center',
-  color: '#999',
-  fontSize: '16px'
-};
 
 // ========== FEEDBACK PAGE STYLES ==========
 const feedbackPageStyle = {

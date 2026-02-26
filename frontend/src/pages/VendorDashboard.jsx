@@ -3,6 +3,9 @@ import axios from "axios";
 import CustomAlert from "../components/CustomAlert";
 import QuantityModal from "../components/QuantityModal";
 import SuccessPopup from "../components/SuccessPopup";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { applyInvoiceHeader, applyInvoiceFooter, getInvoiceTableStyles, drawTotalSection } from "../utils/invoiceDesign";
 
 const API = `http://${window.location.hostname}:8000/api`;
 
@@ -100,6 +103,40 @@ function VendorDashboard() {
     setSelectedVendor(null);
     setProducts([]);
     setInvoice(null);
+  };
+
+  const downloadInvoice = () => {
+    if (!invoice) return;
+    const doc = new jsPDF();
+    const date = new Date().toLocaleDateString();
+
+    // Use shared header
+    applyInvoiceHeader(doc, "PURCHASE CONFIRMATION", invoice.invoice_no, date, "Vendor", selectedVendor.name);
+
+    const tableColumn = ["Product", "Quantity", "Unit Price", "Total"];
+    const tableRows = invoice.items.map(item => [
+      item.product_name,
+      item.quantity,
+      `Rs. ${Number(item.price).toLocaleString()}`,
+      `Rs. ${Number(item.total).toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      ...getInvoiceTableStyles(),
+      head: [tableColumn],
+      body: tableRows,
+      startY: 85,
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 15;
+
+    // Use shared total section
+    drawTotalSection(doc, finalY, null, invoice.total, "Total Cost");
+
+    // Use shared footer
+    applyInvoiceFooter(doc);
+
+    doc.save(`Invoice_${invoice.invoice_no}.pdf`);
   };
 
   if (loading && vendors.length === 0) {
@@ -260,7 +297,7 @@ function VendorDashboard() {
               <div style={styles.invoiceActions}>
                 <button
                   style={styles.downloadBtn}
-                  onClick={() => setAlertMsg({ message: "Download functionality coming soon", type: "success" })}
+                  onClick={downloadInvoice}
                 >
                   📥 Download Invoice
                 </button>

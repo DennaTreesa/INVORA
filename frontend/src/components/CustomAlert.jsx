@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 
 const CustomAlert = ({ message, type = "success", onClose }) => {
     useEffect(() => {
-        // Auto-close after 3 seconds
+        // Auto-close after 1.5 seconds
         const timer = setTimeout(() => {
             onClose();
         }, 1500);

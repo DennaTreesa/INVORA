@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 // logo import removed
 import CustomAlert from "../components/CustomAlert";
 import ConfirmationModal from "../components/ConfirmationModal";
 import QuantityModal from "../components/QuantityModal";
 import SuccessPopup from "../components/SuccessPopup";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import { applyInvoiceHeader, applyInvoiceFooter, getInvoiceTableStyles, drawTotalSection } from "../utils/invoiceDesign";
 
 // Add keyframe animations to document
 const style = document.createElement('style');
@@ -411,91 +414,38 @@ function AdminDashboard() {
     }
   };
 
+
+
   const generatePDF = (order) => {
     const doc = new jsPDF();
+    const date = new Date(order.created_at).toLocaleDateString();
 
-    // Add Logo if defined
-    if (typeof logo !== 'undefined' && logo) {
-      try {
-        doc.addImage(logo, "JPEG", 15, 10, 20, 20);
-      } catch (e) {
-        console.error("Error adding logo to PDF", e);
-      }
-    }
+    // Use shared header
+    applyInvoiceHeader(doc, "PURCHASE ORDER", order.invoice_no, date, "Vendor", order.vendor_name);
 
-    doc.setFontSize(22);
-    doc.setTextColor(10, 58, 82);
-    doc.text("INVORA INVOICE", 195, 25, null, null, "right");
-
-    doc.setDrawColor(52, 152, 219);
-    doc.setLineWidth(0.5);
-    doc.line(15, 35, 195, 35);
-
-    doc.setFontSize(11);
-    doc.setTextColor(80);
-
-    doc.text(`Invoice No:`, 15, 50);
-    doc.setFont(undefined, 'bold');
-    doc.text(`${order.invoice_no}`, 45, 50);
-    doc.setFont(undefined, 'normal');
-
-    doc.text(`Date:`, 15, 58);
-    doc.text(`${new Date(order.created_at).toLocaleDateString()}`, 45, 58);
-
-    doc.text(`Vendor:`, 15, 66);
-    doc.text(`${order.vendor_name}`, 45, 66);
-
-    const tableColumn = ["Product", "Quantity", "Price", "Total"];
-    const tableRows = [];
-
-    order.items.forEach(item => {
-      const orderData = [
-        item.product_name,
-        item.quantity,
-        `Rs. ${item.price}`,
-        `Rs. ${item.total}`
-      ];
-      tableRows.push(orderData);
-    });
+    const tableColumn = ["ITEM DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
+    const tableRows = order.items.map(item => [
+      item.product_name,
+      item.quantity,
+      `Rs. ${item.price.toLocaleString()}`,
+      `Rs. ${item.total.toLocaleString()}`
+    ]);
 
     autoTable(doc, {
+      ...getInvoiceTableStyles(),
       head: [tableColumn],
       body: tableRows,
       startY: 80,
-      theme: 'grid',
-      styles: {
-        fillColor: [255, 255, 255],
-        textColor: [50, 50, 50],
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: [10, 58, 82],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      alternateRowStyles: {
-        fillColor: [240, 248, 251]
-      }
     });
 
     const finalY = doc.lastAutoTable.finalY + 15;
+    const displayTotal = order.total_amount || order.total || 0;
 
-    doc.setFillColor(240, 248, 251);
-    doc.roundedRect(130, finalY - 10, 65, 20, 3, 3, 'F');
+    // Use shared total section
+    drawTotalSection(doc, finalY, null, displayTotal, "Grand Total");
 
-    doc.setFontSize(12);
-    doc.setTextColor(10, 58, 82);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Grand Total:`, 135, finalY + 4);
-
-    doc.setFontSize(14);
-    doc.setTextColor(52, 152, 219);
-    doc.text(`Rs. ${order.total_amount}`, 190, finalY + 4, { align: "right" });
-
-    doc.setFontSize(10);
-    doc.setTextColor(150);
-    doc.text("Thank you for your business!", 105, 280, { align: "center" });
+    // Use shared footer
+    applyInvoiceFooter(doc);
 
     doc.save(`Invoice_${order.invoice_no}.pdf`);
   };
@@ -970,20 +920,6 @@ function AdminDashboard() {
             🧾 Vendor Management
           </button>
 
-          <button
-            style={{
-              ...sideButton,
-              background: activeTab === "history" ? "rgba(52, 152, 219, 0.35)" : "rgba(52, 152, 219, 0.2)",
-              borderLeft: activeTab === "history" ? "4px solid #3498db" : "4px solid transparent",
-            }}
-            onClick={() => {
-              setActiveTab("history");
-              loadHistory();
-            }}
-            className="sidebar-button"
-          >
-            📜 Purchase History
-          </button>
         </div>
 
         <div style={footer}>
@@ -2777,623 +2713,616 @@ function AdminDashboard() {
         {/* VENDOR MANAGEMENT - Enhanced */}
         {
           activeTab === "vendors" && (
-            <div className="fade-in">
-              <div style={{ marginBottom: "30px" }}>
-                <h2 style={{ color: "#0a3a52", margin: "0 0 8px 0", fontSize: "28px", fontWeight: "600" }}>
-                  🧾 Vendor Management
-                </h2>
-                <p style={{ color: "#7f8c8d", margin: 0, fontSize: "16px" }}>
-                  Manage suppliers and purchase inventory
-                </p>
-              </div>
+            <>
+              <div className="fade-in">
+                <div style={{ marginBottom: "30px" }}>
+                  <h2 style={{ color: "#0a3a52", margin: "0 0 8px 0", fontSize: "28px", fontWeight: "600" }}>
+                    🧾 Vendor Management
+                  </h2>
+                  <p style={{ color: "#7f8c8d", margin: 0, fontSize: "16px" }}>
+                    Manage suppliers and purchase inventory
+                  </p>
+                </div>
 
-              {/* ENHANCED INVOICE MODAL */}
-              {invoiceData && (
-                <div style={{
-                  position: "fixed",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: "rgba(10, 58, 82, 0.8)",
-                  backdropFilter: "blur(12px)",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  zIndex: 2000,
-                  animation: "fadeIn 0.3s ease-out"
-                }}>
+                {/* ENHANCED INVOICE MODAL */}
+                {invoiceData && (
                   <div style={{
-                    background: "#fff",
-                    padding: "40px",
-                    borderRadius: "32px",
-                    width: "95%",
-                    maxWidth: "600px",
-                    boxShadow: "0 40px 100px rgba(0,0,0,0.4)",
-                    animation: "scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                    position: "relative",
-                    overflow: "hidden"
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(10, 58, 82, 0.8)",
+                    backdropFilter: "blur(12px)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 2000,
+                    animation: "fadeIn 0.3s ease-out"
                   }}>
                     <div style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "8px",
-                      background: "linear-gradient(90deg, #3498db, #1abc9c)"
-                    }} />
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "30px" }}>
-                      <div style={{ textAlign: "left" }}>
-                        <h2 style={{ color: "#0a3a52", margin: "0 0 5px 0", fontSize: "28px", fontWeight: "800" }}>PURCHASE INVOICE</h2>
-                        <p style={{ color: "#7f8c8d", margin: 0, fontSize: "14px", fontWeight: "600" }}>{invoiceData.invoice_no}</p>
-                      </div>
+                      background: "#fff",
+                      padding: "40px",
+                      borderRadius: "32px",
+                      width: "95%",
+                      maxWidth: "600px",
+                      boxShadow: "0 40px 100px rgba(0,0,0,0.4)",
+                      animation: "scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                      position: "relative",
+                      overflow: "hidden"
+                    }}>
                       <div style={{
-                        background: "#e6f5fa",
-                        padding: "12px",
-                        borderRadius: "16px",
-                        fontSize: "24px"
-                      }}>
-                        ✅
-                      </div>
-                    </div>
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "8px",
+                        background: "linear-gradient(90deg, #3498db, #1abc9c)"
+                      }} />
 
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "20px",
-                      background: "#f8fafc",
-                      borderRadius: "20px",
-                      marginBottom: "25px",
-                      border: "1px solid #edf2f7"
-                    }}>
-                      <div style={{ textAlign: "left" }}>
-                        <p style={{ color: "#718096", fontSize: "12px", textTransform: "uppercase", fontWeight: "700", marginBottom: "5px" }}>Vendor</p>
-                        <p style={{ color: "#2d3748", fontWeight: "700", fontSize: "16px", margin: 0 }}>{invoiceData.vendor_name}</p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ color: "#718096", fontSize: "12px", textTransform: "uppercase", fontWeight: "700", marginBottom: "5px" }}>Date</p>
-                        <p style={{ color: "#2d3748", fontWeight: "700", fontSize: "16px", margin: 0 }}>{new Date().toLocaleDateString()}</p>
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: "30px" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr style={{ borderBottom: "2px solid #edf2f7" }}>
-                            <th style={{ textAlign: "left", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Item Description</th>
-                            <th style={{ textAlign: "center", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Qty</th>
-                            <th style={{ textAlign: "right", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {invoiceData.items && invoiceData.items.map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: "1px solid #f7fafc" }}>
-                              <td style={{ padding: "15px 0", color: "#2d3748", fontWeight: "600" }}>{item.product_name}</td>
-                              <td style={{ padding: "15px 0", textAlign: "center", color: "#4a5568" }}>{item.quantity}</td>
-                              <td style={{ padding: "15px 0", textAlign: "right", color: "#2d3748", fontWeight: "700" }}>₹{item.total.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "20px 0",
-                      borderTop: "2px solid #edf2f7"
-                    }}>
-                      <span style={{ fontSize: "18px", fontWeight: "700", color: "#4a5568" }}>Total Amount</span>
-                      <span style={{ fontSize: "32px", fontWeight: "800", color: "#3498db" }}>₹{invoiceData.total.toLocaleString()}</span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "15px", marginTop: "30px" }}>
-                      <button
-                        style={{
-                          ...primaryButton,
-                          flex: 1,
-                          padding: "16px",
-                          borderRadius: "16px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "10px"
-                        }}
-                        onClick={() => {
-                          generatePDF(invoiceData);
-                        }}
-                        className="hover-lift"
-                      >
-                        📄 Download PDF
-                      </button>
-                      <button
-                        style={{
-                          background: "#edf2f7",
-                          border: "none",
-                          color: "#4a5568",
-                          padding: "16px 30px",
-                          borderRadius: "16px",
-                          fontWeight: "700",
-                          cursor: "pointer",
-                          transition: "all 0.2s"
-                        }}
-                        onClick={() => {
-                          setInvoiceData(null);
-                        }}
-                        className="hover-lift"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!selectedVendor ? (
-                <div>
-                  {["laptop", "phone", "gadget"].map((category, catIndex) => {
-                    const categoryVendors = vendors.filter(v => v.category.toLowerCase() === category);
-                    if (categoryVendors.length === 0) return null;
-
-                    return (
-                      <div key={category} style={{
-                        marginBottom: "45px",
-                        animation: `fadeIn 0.4s ease-out ${catIndex * 0.1}s both`
-                      }}>
-                        <h3 style={{
-                          color: "#0a3a52",
-                          borderBottom: "3px solid #d4ecf7",
-                          paddingBottom: "15px",
-                          marginBottom: "25px",
-                          textTransform: "capitalize",
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: "22px",
-                          fontWeight: "700"
-                        }}>
-                          <span style={{
-                            background: "#e6f5fa",
-                            width: "50px",
-                            height: "50px",
-                            borderRadius: "16px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginRight: "15px",
-                            fontSize: "24px"
-                          }}>
-                            {category === "laptop" ? "💻" : category === "phone" ? "📱" : "🎧"}
-                          </span>
-                          {category} Suppliers
-                          <span style={{
-                            marginLeft: "15px",
-                            background: "#3498db",
-                            color: "white",
-                            padding: "4px 14px",
-                            borderRadius: "30px",
-                            fontSize: "14px",
-                            fontWeight: "600"
-                          }}>
-                            {categoryVendors.length}
-                          </span>
-                        </h3>
-
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "30px" }}>
+                        <div style={{ textAlign: "left" }}>
+                          <h2 style={{ color: "#0a3a52", margin: "0 0 5px 0", fontSize: "28px", fontWeight: "800" }}>PURCHASE INVOICE</h2>
+                          <p style={{ color: "#7f8c8d", margin: 0, fontSize: "14px", fontWeight: "600" }}>{invoiceData.invoice_no}</p>
+                        </div>
                         <div style={{
-                          ...sectionCard,
-                          padding: "0",
-                          overflow: "hidden",
-                          border: "1px solid rgba(52, 152, 219, 0.15)"
+                          background: "#e6f5fa",
+                          padding: "12px",
+                          borderRadius: "16px",
+                          fontSize: "24px"
                         }}>
-                          <div style={{ overflowX: "auto" }}>
-                            <table style={tableStyle}>
-                              <thead>
-                                <tr>
-                                  <th style={tableHeader}>Vendor Details</th>
-                                  <th style={tableHeader}>Contact</th>
-                                  <th style={tableHeader}>Products</th>
-                                  <th style={tableHeader}>Action</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {categoryVendors.map((v, index) => (
-                                  <tr key={v.id} style={{
-                                    animation: `fadeIn 0.3s ease-out ${index * 0.05}s both`
-                                  }} className="table-row-hover">
-                                    <td style={tableCell}>
-                                      <div style={{ textAlign: "left" }}>
-                                        <div style={{ fontWeight: "700", color: "#0a3a52", fontSize: "16px", marginBottom: "4px" }}>
-                                          {v.name}
-                                        </div>
-                                        <div style={{ fontSize: "13px", color: "#7f8c8d" }}>
-                                          {v.email}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td style={tableCell}>
-                                      <div style={{ fontWeight: "500", color: "#2c3e50" }}>{v.phone}</div>
-                                    </td>
-                                    <td style={tableCell}>
-                                      <span style={{
-                                        background: "#e6f5fa",
-                                        padding: "6px 16px",
-                                        borderRadius: "30px",
-                                        fontSize: "13px",
-                                        color: "#2980b9",
-                                        fontWeight: "600"
-                                      }}>
-                                        {v.product_count || 'N/A'} items
-                                      </span>
-                                    </td>
-                                    <td style={tableCell}>
-                                      <button
-                                        style={{
-                                          ...editButton,
-                                          padding: "12px 24px",
-                                          borderRadius: "30px",
-                                          fontSize: "14px",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "8px",
-                                          margin: "0 auto",
-                                          background: "linear-gradient(145deg, #3498db, #2980b9)",
-                                          border: "none",
-                                          boxShadow: "0 4px 12px rgba(52, 152, 219, 0.2)"
-                                        }}
-                                        onClick={() => loadVendorProducts(v)}
-                                        className="hover-lift"
-                                      >
-                                        📋 View Catalog
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                          ✅
                         </div>
                       </div>
-                    );
-                  })}
 
-                  {vendors.length === 0 && (
-                    <div style={{
-                      ...emptyState,
-                      animation: "scaleIn 0.4s ease-out",
-                      padding: "80px 40px",
-                      background: "linear-gradient(145deg, #ffffff, #f8fcff)"
-                    }} className="hover-scale">
-                      <div style={{ fontSize: "72px", marginBottom: "25px", color: "#b0d9e8" }}>🏭</div>
-                      <h3 style={{ color: "#0a3a52", marginBottom: "12px", fontSize: "28px", fontWeight: "600" }}>
-                        No Vendors Found
-                      </h3>
-                      <p style={{ color: "#7f8c8d", marginBottom: "25px", fontSize: "16px" }}>
-                        Connect with suppliers to start purchasing inventory.
-                      </p>
-                    </div>
-                  )}
-
-                </div>
-              ) : (
-                <>
-                  <button
-                    style={{
-                      ...secondaryButton,
-                      marginBottom: "30px",
-                      padding: "12px 28px",
-                      borderRadius: "40px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      border: "2px solid rgba(52, 152, 219, 0.3)"
-                    }}
-                    onClick={() => setSelectedVendor(null)}
-                    className="hover-lift"
-                  >
-                    ← Back to Vendors
-                  </button>
-
-                  <div style={{
-                    background: "linear-gradient(145deg, #ffffff, #fafdfe)",
-                    padding: "40px",
-                    borderRadius: "32px",
-                    border: "1px solid rgba(52, 152, 219, 0.15)",
-                    marginBottom: "30px"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "30px" }}>
                       <div style={{
-                        width: "80px",
-                        height: "80px",
-                        background: "linear-gradient(145deg, #e6f5fa, #d4ecf7)",
-                        borderRadius: "24px",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "40px"
+                        justifyContent: "space-between",
+                        padding: "20px",
+                        background: "#f8fafc",
+                        borderRadius: "20px",
+                        marginBottom: "25px",
+                        border: "1px solid #edf2f7"
                       }}>
-                        🏭
+                        <div style={{ textAlign: "left" }}>
+                          <p style={{ color: "#718096", fontSize: "12px", textTransform: "uppercase", fontWeight: "700", marginBottom: "5px" }}>Vendor</p>
+                          <p style={{ color: "#2d3748", fontWeight: "700", fontSize: "16px", margin: 0 }}>{invoiceData.vendor_name}</p>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <p style={{ color: "#718096", fontSize: "12px", textTransform: "uppercase", fontWeight: "700", marginBottom: "5px" }}>Date</p>
+                          <p style={{ color: "#2d3748", fontWeight: "700", fontSize: "16px", margin: 0 }}>{new Date().toLocaleDateString()}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 style={{ margin: "0 0 8px 0", color: "#0a3a52", fontSize: "28px", fontWeight: "700" }}>
-                          {selectedVendor.name}
-                        </h3>
-                        <p style={{ margin: 0, color: "#7f8c8d", fontSize: "16px" }}>
-                          {selectedVendor.email} • {selectedVendor.phone}
-                        </p>
-                      </div>
-                    </div>
 
-                    <h4 style={{
-                      color: "#0a3a52",
-                      margin: "0 0 20px 0",
-                      fontSize: "20px",
-                      fontWeight: "600",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px"
-                    }}>
-                      <span>📦 Available Products</span>
-                      <span style={{
-                        background: "#3498db",
-                        color: "white",
-                        padding: "4px 14px",
-                        borderRadius: "30px",
-                        fontSize: "14px"
-                      }}>
-                        {vendorProducts.length} items
-                      </span>
-                    </h4>
-                  </div>
-
-                  {vendorProducts.length > 0 ? (
-                    <div style={{
-                      ...sectionCard,
-                      padding: "0",
-                      overflow: "hidden",
-                      border: "1px solid rgba(52, 152, 219, 0.15)"
-                    }}>
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={tableStyle}>
+                      <div style={{ marginBottom: "30px" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
                           <thead>
-                            <tr>
-                              <th style={tableHeader}>Product</th>
-                              <th style={tableHeader}>Cost Price</th>
-                              <th style={tableHeader}>Stock Status</th>
-                              <th style={tableHeader}>Action</th>
+                            <tr style={{ borderBottom: "2px solid #edf2f7" }}>
+                              <th style={{ textAlign: "left", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Item Description</th>
+                              <th style={{ textAlign: "center", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Qty</th>
+                              <th style={{ textAlign: "right", padding: "12px 0", color: "#718096", fontSize: "13px", fontWeight: "600" }}>Amount</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {vendorProducts.map((p, index) => (
-                              <tr
-                                key={p.id}
-                                id={`vendor-product-${p.id}`}
-                                style={{
-                                  animation: `fadeIn 0.3s ease-out ${index * 0.04}s both`
-                                }}
-                                className="table-row-hover"
-                              >
-                                <td style={{ ...tableCell, fontWeight: "600", color: "#0a3a52" }}>
-                                  {p.name}
-                                </td>
-                                <td style={{ ...tableCell, fontWeight: "700", color: "#2980b9", fontSize: "16px" }}>
-                                  ₹{p.cost_price}
-                                </td>
-                                <td style={tableCell}>
-                                  <span style={{
-                                    padding: "6px 16px",
-                                    borderRadius: "30px",
-                                    fontSize: "13px",
-                                    fontWeight: "600",
-                                    background: p.stock_status === 'in_stock' ? '#e8f5e9' : '#ffebee',
-                                    color: p.stock_status === 'in_stock' ? '#2e7d32' : '#c62828'
-                                  }}>
-                                    {p.stock_status || 'Available'}
-                                  </span>
-                                </td>
-                                <td style={tableCell}>
-                                  <button
-                                    style={{
-                                      padding: "12px 28px",
-                                      borderRadius: "30px",
-                                      border: "none",
-                                      background: "linear-gradient(145deg, #1abc9c, #16a085)",
-                                      color: "#fff",
-                                      cursor: "pointer",
-                                      fontSize: "14px",
-                                      fontWeight: "600",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "8px",
-                                      margin: "0 auto",
-                                      boxShadow: "0 4px 12px rgba(26, 188, 156, 0.2)"
-                                    }}
-                                    onClick={() => {
-                                      setPurchaseProduct(p);
-                                      setIsSmartBuy(false);
-                                      setShowQuantityModal(true);
-                                    }}
-                                    className="hover-lift"
-                                  >
-                                    🛒 Purchase Stock
-                                  </button>
-                                </td>
+                            {invoiceData.items && invoiceData.items.map((item, idx) => (
+                              <tr key={idx} style={{ borderBottom: "1px solid #f7fafc" }}>
+                                <td style={{ padding: "15px 0", color: "#2d3748", fontWeight: "600" }}>{item.product_name}</td>
+                                <td style={{ padding: "15px 0", textAlign: "center", color: "#4a5568" }}>{item.quantity}</td>
+                                <td style={{ padding: "15px 0", textAlign: "right", color: "#2d3748", fontWeight: "700" }}>₹{item.total.toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: "60px",
-                      textAlign: "center",
-                      color: "#7f8c8d",
-                      background: "linear-gradient(145deg, #f0f8fb, #e6f5fa)",
-                      borderRadius: "32px",
-                      fontSize: "16px"
-                    }}>
-                      <span style={{ fontSize: "64px", display: "block", marginBottom: "20px" }}>📭</span>
-                      No products available from this vendor.
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )
-        }
 
-        {/* PURCHASE HISTORY TAB */}
-        {
-          activeTab === "history" && (
-            <div className="fade-in">
-              <div style={{ marginBottom: "35px" }}>
-                <h2 style={{ color: "#0a3a52", margin: "0 0 8px 0", fontSize: "32px", fontWeight: "800", letterSpacing: "-0.5px" }}>
-                  📜 Purchase History
-                </h2>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ color: "#7f8c8d", fontSize: "16px" }}>Track all your inventory procurement orders</span>
-                  <span style={{
-                    background: "#1abc9c",
-                    color: "white",
-                    padding: "4px 14px",
-                    borderRadius: "30px",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    textTransform: "uppercase"
-                  }}>
-                    {purchaseHistory.length} Total Orders
-                  </span>
-                </div>
+                      <div style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "20px 0",
+                        borderTop: "2px solid #edf2f7"
+                      }}>
+                        <span style={{ fontSize: "18px", fontWeight: "700", color: "#4a5568" }}>Total Amount</span>
+                        <span style={{ fontSize: "32px", fontWeight: "800", color: "#3498db" }}>₹{(invoiceData.total_amount || invoiceData.total || 0).toLocaleString()}</span>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "15px", marginTop: "30px" }}>
+                        <button
+                          style={{
+                            ...primaryButton,
+                            flex: 1,
+                            padding: "16px",
+                            borderRadius: "16px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "10px"
+                          }}
+                          onClick={() => {
+                            generatePDF(invoiceData);
+                          }}
+                          className="hover-lift"
+                        >
+                          📄 Download PDF
+                        </button>
+                        <button
+                          style={{
+                            background: "#edf2f7",
+                            border: "none",
+                            color: "#4a5568",
+                            padding: "16px 30px",
+                            borderRadius: "16px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                          onClick={() => {
+                            setInvoiceData(null);
+                          }}
+                          className="hover-lift"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!selectedVendor ? (
+                  <div>
+                    {["laptop", "phone", "gadget"].map((category, catIndex) => {
+                      const categoryVendors = vendors.filter(v => v.category.toLowerCase() === category);
+                      if (categoryVendors.length === 0) return null;
+
+                      return (
+                        <div key={category} style={{
+                          marginBottom: "45px",
+                          animation: `fadeIn 0.4s ease-out ${catIndex * 0.1}s both`
+                        }}>
+                          <h3 style={{
+                            color: "#0a3a52",
+                            borderBottom: "3px solid #d4ecf7",
+                            paddingBottom: "15px",
+                            marginBottom: "25px",
+                            textTransform: "capitalize",
+                            display: "flex",
+                            alignItems: "center",
+                            fontSize: "22px",
+                            fontWeight: "700"
+                          }}>
+                            <span style={{
+                              background: "#e6f5fa",
+                              width: "50px",
+                              height: "50px",
+                              borderRadius: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              marginRight: "15px",
+                              fontSize: "24px"
+                            }}>
+                              {category === "laptop" ? "💻" : category === "phone" ? "📱" : "🎧"}
+                            </span>
+                            {category} Suppliers
+                            <span style={{
+                              marginLeft: "15px",
+                              background: "#3498db",
+                              color: "white",
+                              padding: "4px 14px",
+                              borderRadius: "30px",
+                              fontSize: "14px",
+                              fontWeight: "600"
+                            }}>
+                              {categoryVendors.length}
+                            </span>
+                          </h3>
+
+                          <div style={{
+                            ...sectionCard,
+                            padding: "0",
+                            overflow: "hidden",
+                            border: "1px solid rgba(52, 152, 219, 0.15)"
+                          }}>
+                            <div style={{ overflowX: "auto" }}>
+                              <table style={tableStyle}>
+                                <thead>
+                                  <tr>
+                                    <th style={tableHeader}>Vendor Details</th>
+                                    <th style={tableHeader}>Contact</th>
+                                    <th style={tableHeader}>Products</th>
+                                    <th style={tableHeader}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {categoryVendors.map((v, index) => (
+                                    <tr key={v.id} style={{
+                                      animation: `fadeIn 0.3s ease-out ${index * 0.05}s both`
+                                    }} className="table-row-hover">
+                                      <td style={tableCell}>
+                                        <div style={{ textAlign: "left" }}>
+                                          <div style={{ fontWeight: "700", color: "#0a3a52", fontSize: "16px", marginBottom: "4px" }}>
+                                            {v.name}
+                                          </div>
+                                          <div style={{ fontSize: "13px", color: "#7f8c8d" }}>
+                                            {v.email}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td style={tableCell}>
+                                        <div style={{ fontWeight: "500", color: "#2c3e50" }}>{v.phone}</div>
+                                      </td>
+                                      <td style={tableCell}>
+                                        <span style={{
+                                          background: "#e6f5fa",
+                                          padding: "6px 16px",
+                                          borderRadius: "30px",
+                                          fontSize: "13px",
+                                          color: "#2980b9",
+                                          fontWeight: "600"
+                                        }}>
+                                          {v.product_count ?? 0} items
+                                        </span>
+                                      </td>
+                                      <td style={tableCell}>
+                                        <button
+                                          style={{
+                                            ...editButton,
+                                            padding: "12px 24px",
+                                            borderRadius: "30px",
+                                            fontSize: "14px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
+                                            margin: "0 auto",
+                                            background: "linear-gradient(145deg, #3498db, #2980b9)",
+                                            border: "none",
+                                            boxShadow: "0 4px 12px rgba(52, 152, 219, 0.2)"
+                                          }}
+                                          onClick={() => loadVendorProducts(v)}
+                                          className="hover-lift"
+                                        >
+                                          📋 View Catalog
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {vendors.length === 0 && (
+                      <div style={{
+                        ...emptyState,
+                        animation: "scaleIn 0.4s ease-out",
+                        padding: "80px 40px",
+                        background: "linear-gradient(145deg, #ffffff, #f8fcff)"
+                      }} className="hover-scale">
+                        <div style={{ fontSize: "72px", marginBottom: "25px", color: "#b0d9e8" }}>🏭</div>
+                        <h3 style={{ color: "#0a3a52", marginBottom: "12px", fontSize: "28px", fontWeight: "600" }}>
+                          No Vendors Found
+                        </h3>
+                        <p style={{ color: "#7f8c8d", marginBottom: "25px", fontSize: "16px" }}>
+                          Connect with suppliers to start purchasing inventory.
+                        </p>
+                      </div>
+                    )}
+
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      style={{
+                        ...secondaryButton,
+                        marginBottom: "30px",
+                        padding: "12px 28px",
+                        borderRadius: "40px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        border: "2px solid rgba(52, 152, 219, 0.3)"
+                      }}
+                      onClick={() => setSelectedVendor(null)}
+                      className="hover-lift"
+                    >
+                      ← Back to Vendors
+                    </button>
+
+                    <div style={{
+                      background: "linear-gradient(145deg, #ffffff, #fafdfe)",
+                      padding: "40px",
+                      borderRadius: "32px",
+                      border: "1px solid rgba(52, 152, 219, 0.15)",
+                      marginBottom: "30px"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "30px" }}>
+                        <div style={{
+                          width: "80px",
+                          height: "80px",
+                          background: "linear-gradient(145deg, #e6f5fa, #d4ecf7)",
+                          borderRadius: "24px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "40px"
+                        }}>
+                          🏭
+                        </div>
+                        <div>
+                          <h3 style={{ margin: "0 0 8px 0", color: "#0a3a52", fontSize: "28px", fontWeight: "700" }}>
+                            {selectedVendor.name}
+                          </h3>
+                          <p style={{ margin: 0, color: "#7f8c8d", fontSize: "16px" }}>
+                            {selectedVendor.email} • {selectedVendor.phone}
+                          </p>
+                        </div>
+                      </div>
+
+                      <h4 style={{
+                        color: "#0a3a52",
+                        margin: "0 0 20px 0",
+                        fontSize: "20px",
+                        fontWeight: "600",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px"
+                      }}>
+                        <span>📦 Available Products</span>
+                        <span style={{
+                          background: "#3498db",
+                          color: "white",
+                          padding: "4px 14px",
+                          borderRadius: "30px",
+                          fontSize: "14px"
+                        }}>
+                          {vendorProducts.length} items
+                        </span>
+                      </h4>
+                    </div>
+
+                    {vendorProducts.length > 0 ? (
+                      <div style={{
+                        ...sectionCard,
+                        padding: "0",
+                        overflow: "hidden",
+                        border: "1px solid rgba(52, 152, 219, 0.15)"
+                      }}>
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={tableStyle}>
+                            <thead>
+                              <tr>
+                                <th style={tableHeader}>Product</th>
+                                <th style={tableHeader}>Cost Price</th>
+                                <th style={tableHeader}>Stock Status</th>
+                                <th style={tableHeader}>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {vendorProducts.map((p, index) => (
+                                <tr
+                                  key={p.id}
+                                  id={`vendor-product-${p.id}`}
+                                  style={{
+                                    animation: `fadeIn 0.3s ease-out ${index * 0.04}s both`
+                                  }}
+                                  className="table-row-hover"
+                                >
+                                  <td style={{ ...tableCell, fontWeight: "600", color: "#0a3a52" }}>
+                                    {p.name}
+                                  </td>
+                                  <td style={{ ...tableCell, fontWeight: "700", color: "#2980b9", fontSize: "16px" }}>
+                                    ₹{p.cost_price}
+                                  </td>
+                                  <td style={tableCell}>
+                                    <span style={{
+                                      padding: "6px 16px",
+                                      borderRadius: "30px",
+                                      fontSize: "13px",
+                                      fontWeight: "600",
+                                      background: p.stock_status === 'in_stock' ? '#e8f5e9' : '#ffebee',
+                                      color: p.stock_status === 'in_stock' ? '#2e7d32' : '#c62828'
+                                    }}>
+                                      {p.stock} units
+                                    </span>
+                                  </td>
+                                  <td style={tableCell}>
+                                    <button
+                                      style={{
+                                        padding: "12px 28px",
+                                        borderRadius: "30px",
+                                        border: "none",
+                                        background: "linear-gradient(145deg, #1abc9c, #16a085)",
+                                        color: "#fff",
+                                        cursor: "pointer",
+                                        fontSize: "14px",
+                                        fontWeight: "600",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        margin: "0 auto",
+                                        boxShadow: "0 4px 12px rgba(26, 188, 156, 0.2)"
+                                      }}
+                                      onClick={() => {
+                                        setPurchaseProduct(p);
+                                        setIsSmartBuy(false);
+                                        setShowQuantityModal(true);
+                                      }}
+                                      className="hover-lift"
+                                    >
+                                      🛒 Purchase Stock
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: "60px",
+                        textAlign: "center",
+                        color: "#7f8c8d",
+                        background: "linear-gradient(145deg, #f0f8fb, #e6f5fa)",
+                        borderRadius: "32px",
+                        fontSize: "16px"
+                      }}>
+                        <span style={{ fontSize: "64px", display: "block", marginBottom: "20px" }}>📭</span>
+                        No products available from this vendor.
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              {purchaseHistory.length > 0 ? (
-                <div style={{
-                  ...sectionCard,
-                  padding: "0",
-                  overflow: "hidden",
-                  border: "1px solid rgba(52, 152, 219, 0.15)",
-                  background: "#fff",
-                  boxShadow: "0 15px 40px rgba(10, 58, 82, 0.05)"
-                }}>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={tableStyle}>
-                      <thead>
-                        <tr>
-                          <th style={{ ...tableHeader, textAlign: "left", paddingLeft: "30px" }}>Order ID / Invoice</th>
-                          <th style={tableHeader}>Supplier Vendor</th>
-                          <th style={tableHeader}>Transaction Date</th>
-                          <th style={tableHeader}>Purchase Amount</th>
-                          <th style={{ ...tableHeader, textAlign: "right", paddingRight: "30px" }}>Invoice Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {purchaseHistory.map((order, index) => (
-                          <tr key={order.id} style={{
-                            animation: `fadeIn 0.3s ease-out ${index * 0.05}s both`,
-                            borderBottom: "1px solid #f1f5f9"
-                          }} className="table-row-hover">
-                            <td style={{ ...tableCell, paddingLeft: "30px", textAlign: "left" }}>
-                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                <span style={{
-                                  fontWeight: "800",
-                                  color: "#2980b9",
-                                  fontSize: "15px"
-                                }}>
-                                  #{order.invoice_no}
-                                </span>
-                                <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Procurement</span>
-                              </div>
-                            </td>
-                            <td style={{ ...tableCell, fontWeight: "700", color: "#0a3a52" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
-                                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#3498db" }}></div>
-                                {order.vendor_name}
-                              </div>
-                            </td>
-                            <td style={tableCell}>
-                              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                <span style={{ fontWeight: "600", color: "#475569" }}>
-                                  {new Date(order.created_at).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </span>
-                                <span style={{ fontSize: "12px", color: "#94a3b8" }}>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                            </td>
-                            <td style={{ ...tableCell }}>
-                              <span style={{
-                                fontWeight: "800",
-                                color: "#10b981",
-                                fontSize: "18px",
-                                background: "#ecfdf5",
-                                padding: "8px 16px",
-                                borderRadius: "12px"
-                              }}>
-                                ₹{order.total_amount.toLocaleString()}
-                              </span>
-                            </td>
-                            <td style={{ ...tableCell, paddingRight: "30px", textAlign: "right" }}>
-                              <button
-                                style={{
-                                  padding: "10px 24px",
-                                  borderRadius: "14px",
-                                  border: "none",
-                                  background: "linear-gradient(135deg, #3498db 0%, #2980b9 100%)",
-                                  color: "#fff",
-                                  cursor: "pointer",
-                                  fontSize: "13px",
-                                  fontWeight: "700",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "10px",
-                                  marginLeft: "auto",
-                                  boxShadow: "0 4px 12px rgba(52, 152, 219, 0.25)",
-                                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                                }}
-                                onClick={() => generatePDF(order)}
-                                className="hover-lift"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                  <polyline points="7 10 12 15 17 10"></polyline>
-                                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                GET INVOICE (PDF)
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* PURCHASE HISTORY SECTION - Integrated below Vendors */}
+              <div style={{ marginTop: "50px", borderTop: "2px solid #d4ecf7", paddingTop: "40px" }} className="fade-in">
+                <div style={{ marginBottom: "35px" }}>
+                  <h2 style={{ color: "#0a3a52", margin: "0 0 8px 0", fontSize: "32px", fontWeight: "800", letterSpacing: "-0.5px" }}>
+                    📜 Purchase History
+                  </h2>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span style={{ color: "#7f8c8d", fontSize: "16px" }}>Track all your inventory procurement orders</span>
+                    <span style={{
+                      background: "#1abc9c",
+                      color: "white",
+                      padding: "4px 14px",
+                      borderRadius: "30px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      textTransform: "uppercase"
+                    }}>
+                      {purchaseHistory.length} Total Orders
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <div style={{
-                  ...emptyState,
-                  padding: "100px 40px",
-                  background: "#fff",
-                  borderRadius: "32px",
-                  border: "2px dashed #e2e8f0"
-                }}>
-                  <div style={{ fontSize: "80px", marginBottom: "30px" }}>📂</div>
-                  <h3 style={{ color: "#0a3a52", marginBottom: "15px", fontSize: "24px", fontWeight: "700" }}>No Procurement Orders</h3>
-                  <p style={{ color: "#7f8c8d", maxWidth: "400px", margin: "0 auto 30px", fontSize: "16px" }}>
-                    Your procurement history will appear here once you start purchasing stock from vendors.
-                  </p>
-                  <button
-                    style={{ ...primaryButton, padding: "14px 35px", borderRadius: "12px" }}
-                    onClick={() => setActiveTab("vendors")}
-                  >
-                    Go to Vendors
-                  </button>
-                </div>
-              )}
-            </div>
+
+                {purchaseHistory.length > 0 ? (
+                  <div style={{
+                    ...sectionCard,
+                    padding: "0",
+                    overflow: "hidden",
+                    border: "1px solid rgba(52, 152, 219, 0.15)",
+                    background: "#fff",
+                    boxShadow: "0 15px 40px rgba(10, 58, 82, 0.05)"
+                  }}>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={tableStyle}>
+                        <thead>
+                          <tr>
+                            <th style={{ ...tableHeader, textAlign: "left", paddingLeft: "30px" }}>Order ID / Invoice</th>
+                            <th style={tableHeader}>Supplier Vendor</th>
+                            <th style={tableHeader}>Transaction Date</th>
+                            <th style={tableHeader}>Purchase Amount</th>
+                            <th style={{ ...tableHeader, textAlign: "right", paddingRight: "30px" }}>Invoice Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {purchaseHistory.map((order, index) => (
+                            <tr key={order.id} style={{
+                              animation: `fadeIn 0.3s ease-out ${index * 0.05}s both`,
+                              borderBottom: "1px solid #f1f5f9"
+                            }} className="table-row-hover">
+                              <td style={{ ...tableCell, paddingLeft: "30px", textAlign: "left" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  <span style={{
+                                    fontWeight: "800",
+                                    color: "#2980b9",
+                                    fontSize: "15px"
+                                  }}>
+                                    #{order.invoice_no}
+                                  </span>
+                                  <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", textTransform: "uppercase" }}>Procurement</span>
+                                </div>
+                              </td>
+                              <td style={{ ...tableCell, fontWeight: "700", color: "#0a3a52" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+                                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#3498db" }}></div>
+                                  {order.vendor_name}
+                                </div>
+                              </td>
+                              <td style={tableCell}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                  <span style={{ fontWeight: "600", color: "#475569" }}>
+                                    {new Date(order.created_at).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })}
+                                  </span>
+                                  <span style={{ fontSize: "12px", color: "#94a3b8" }}>{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                              </td>
+                              <td style={{ ...tableCell }}>
+                                <span style={{
+                                  fontWeight: "800",
+                                  color: "#10b981",
+                                  fontSize: "18px",
+                                  background: "#ecfdf5",
+                                  padding: "8px 16px",
+                                  borderRadius: "12px"
+                                }}>
+                                  ₹{order.total_amount.toLocaleString()}
+                                </span>
+                              </td>
+                              <td style={{ ...tableCell, paddingRight: "30px", textAlign: "right" }}>
+                                <button
+                                  style={{
+                                    padding: "10px 24px",
+                                    borderRadius: "14px",
+                                    border: "none",
+                                    background: "linear-gradient(135deg, #3498db 0%, #2980b9 100%)",
+                                    color: "#fff",
+                                    cursor: "pointer",
+                                    fontSize: "13px",
+                                    fontWeight: "700",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                    marginLeft: "auto",
+                                    boxShadow: "0 4px 12px rgba(52, 152, 219, 0.25)",
+                                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                                  }}
+                                  onClick={() => generatePDF(order)}
+                                  className="hover-lift"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                  </svg>
+                                  GET INVOICE (PDF)
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    ...emptyState,
+                    padding: "100px 40px",
+                    background: "#fff",
+                    borderRadius: "32px",
+                    border: "2px dashed #e2e8f0"
+                  }}>
+                    <div style={{ fontSize: "80px", marginBottom: "30px" }}>📂</div>
+                    <h3 style={{ color: "#0a3a52", marginBottom: "15px", fontSize: "24px", fontWeight: "700" }}>No Procurement Orders</h3>
+                    <p style={{ color: "#7f8c8d", maxWidth: "400px", margin: "0 auto 30px", fontSize: "16px" }}>
+                      Your procurement history will appear here once you start purchasing stock from vendors.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
           )
         }
+
       </div>
 
       {
@@ -3432,7 +3361,7 @@ function AdminDashboard() {
         message={confirmation.message}
         type={confirmation.type}
       />
-    </div>
+    </div >
   );
 }
 

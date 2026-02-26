@@ -30,9 +30,14 @@ class AnnouncementSerializer(serializers.ModelSerializer):
 
 
 class VendorSerializer(serializers.ModelSerializer):
+    product_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Vendor
         fields = "__all__"
+
+    def get_product_count(self, obj):
+        return obj.products.count()
 
 class SalesItemSerializer(serializers.ModelSerializer):
     class Meta:
