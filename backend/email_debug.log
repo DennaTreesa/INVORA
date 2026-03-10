@@ -122,3 +122,12 @@ Email sent successfully using EmailMessage!
 Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
 Staff message sent. No email notification to admins.
 No recipients found to email.
+
+--- New Message at 2026-03-10 05:00:35.135630+00:00 ---
+Sender: dennathomas46@gmail.com (Role: staff, Superuser: False)
+Staff message sent. No email notification to admins.
+No recipients found to email.
+
+--- New Message at 2026-03-10 05:12:13.411982+00:00 ---
+Sender: smartinventory05@gmail.com (Role: admin, Superuser: False)
+Email sent successfully using EmailMessage!

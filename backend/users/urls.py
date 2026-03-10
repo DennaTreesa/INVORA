@@ -63,6 +63,7 @@ urlpatterns = [
     path("sales/orders/", views.create_sales_order),
     path("staff/orders/", views.get_my_sales_orders),
     path("staff/orders/<int:id>/status/", views.update_sales_order_status),
+    path("staff/orders/complete-all/", views.complete_all_my_orders),
     path("staff/orders/<int:id>/invoice/", views.download_invoice), # NEW
     path("feedback/", views.get_dashboard_feedback), 
     path("contact-us/", views.send_contact_email), # Contact Form

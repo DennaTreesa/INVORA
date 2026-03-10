@@ -1249,3 +1249,13 @@ def download_invoice(request, id):
         return Response({"message": "Order not found"}, status=404)
     except Exception as e:
         return Response({"message": str(e)}, status=500)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def complete_all_my_orders(request):
+    user = request.user
+    if user.role != "staff":
+        return Response({"message": "Staff only"}, status=403)
+        
+    updated = SalesOrder.objects.filter(staff=user, status="processing").update(status="completed")
+    return Response({"message": f"Successfully marked {updated} orders as completed.", "count": updated})

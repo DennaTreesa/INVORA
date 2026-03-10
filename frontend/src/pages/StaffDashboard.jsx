@@ -255,6 +255,20 @@ function StaffDashboard() {
     }
   };
 
+  const completeAllOrders = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${API}/staff/orders/complete-all/`, {},
+        { headers: { Authorization: `Token ${token}` } }
+      );
+      setAlertMsg({ message: `✅ ${res.data.count} orders marked as completed!`, type: "success" });
+      loadOrders(token);
+    } catch (err) {
+      console.error(err);
+      setAlertMsg({ message: "Failed to update orders.", type: "error" });
+    }
+  };
+
   const loadFeedback = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -795,30 +809,27 @@ function StaffDashboard() {
                   </div>
 
                   {/* Conditional Actions */}
-                  {selectedOrder.status === 'processing' && (
-                    <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
+                  <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
+                    {selectedOrder.status === 'processing' && (
                       <button
                         onClick={() => completeOrder(selectedOrder.id)}
                         style={{
-                          background: 'linear-gradient(145deg, #2ecc71, #27ae60)',
+                          background: '#2ecc71',
                           color: 'white',
-                          padding: '14px 30px',
-                          borderRadius: '12px',
                           border: 'none',
+                          padding: '12px 30px',
+                          borderRadius: '12px',
                           fontWeight: '700',
                           fontSize: '15px',
                           cursor: 'pointer',
-                          boxShadow: '0 8px 20px rgba(46, 204, 113, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px'
+                          boxShadow: '0 10px 20px rgba(46, 204, 113, 0.2)'
                         }}
                         className="hover-lift"
                       >
                         ✅ Mark as Completed
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Feedback Section */}
                   <div style={{ marginTop: '50px' }}>
@@ -851,16 +862,37 @@ function StaffDashboard() {
                     </h2>
                     <p style={{ ...pageSubtitle, margin: 0 }}>Track and manage your customer orders</p>
                   </div>
-                  <div style={{
-                    background: '#fff',
-                    padding: '8px 20px',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    color: '#0a3a52',
-                    fontWeight: '700',
-                    fontSize: '14px'
-                  }}>
-                    Active Orders: {orders.length}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    {orders.some(o => o.status === 'processing') && (
+                      <button
+                        onClick={completeAllOrders}
+                        style={{
+                          background: '#2ecc71',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 20px',
+                          borderRadius: '10px',
+                          fontWeight: '700',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(46, 204, 113, 0.2)'
+                        }}
+                        className="hover-lift"
+                      >
+                        ✅ Mark All as Completed
+                      </button>
+                    )}
+                    <div style={{
+                      background: '#fff',
+                      padding: '8px 20px',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      color: '#0a3a52',
+                      fontWeight: '700',
+                      fontSize: '14px'
+                    }}>
+                      Active Orders: {orders.length}
+                    </div>
                   </div>
                 </div>
 
@@ -943,283 +975,287 @@ function StaffDashboard() {
             )}
           </div>
         )}
-
-
         {/* ========== FEEDBACK PAGE ========== */}
-        {activeTab === "feedback" && (
-          <div style={{ ...fadeAnim, ...feedbackPageStyle }}>
-            <div style={pageHeader}>
-              <div>
-                <h2 style={pageTitle}>💬 Customer Feedback</h2>
-                <p style={pageSubtitle}>Reviews and ratings from your customers</p>
-              </div>
-              <div style={feedbackStatsBadge}>
-                <span>Average Rating: </span>
-                <strong style={averageRating}>
-                  {feedbacks.length > 0
-                    ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / feedbacks.length).toFixed(1)
-                    : '0.0'} / 5
-                </strong>
-              </div>
-            </div>
-
-            <div style={feedbackGrid}>
-              {feedbacks.length === 0 ? (
-                <div style={emptyStateCard}>
-                  <span style={{ fontSize: '40px' }}>💬</span>
-                  <p>No feedback received yet.</p>
+        {
+          activeTab === "feedback" && (
+            <div style={{ ...fadeAnim, ...feedbackPageStyle }}>
+              <div style={pageHeader}>
+                <div>
+                  <h2 style={pageTitle}>💬 Customer Feedback</h2>
+                  <p style={pageSubtitle}>Reviews and ratings from your customers</p>
                 </div>
-              ) : (
-                feedbacks.map((f, idx) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      ...feedbackCard,
-                      animation: `slideInRight 0.4s ease ${idx * 0.08}s both`,
-                      borderTop: `4px solid ${f.rating >= 4 ? '#2ecc71' :
-                        f.rating >= 3 ? '#f39c12' :
-                          '#e74c3c'
-                        }`,
-                    }}
-                  >
-                    <div style={feedbackCardHeader}>
-                      <div style={feedbackRatingLarge}>
-                        {f.rating === 1 && "😠"}
-                        {f.rating === 2 && "😞"}
-                        {f.rating === 3 && "😐"}
-                        {f.rating === 4 && "😊"}
-                        {f.rating === 5 && "🔥"}
-                        <span style={feedbackRatingNumber}>{f.rating}/5</span>
-                      </div>
-                      <span style={feedbackOrderId}>Order #{f.order_id}</span>
-                    </div>
-
-                    <p style={feedbackCommentLarge}>"{f.comment}"</p>
-
-                    <div style={feedbackCardFooter}>
-                      <span style={feedbackDate}>
-                        {new Date(f.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                      <span style={feedbackCustomer}>
-                        {f.customer_name || 'Customer'}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-
-        {/* ========== PROFILE PAGE ========== */}
-        {activeTab === "profile" && (
-          <div style={{ ...fadeAnim, ...profilePageStyle }}>
-            <div style={pageHeader}>
-              <div>
-                <h2 style={pageTitle}>👤 My Profile</h2>
-                <p style={pageSubtitle}>Manage your personal information</p>
-              </div>
-            </div>
-
-            <div style={profileContainer}>
-              <div style={profileCard}>
-                <div style={profileHeader}>
-                  <div style={profileAvatarLarge}>
-                    {staff.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 style={profileNameLarge}>{staff.name}</h3>
-                    <span style={roleBadge}>{staff.role === 'admin' ? 'Administrator' : 'Staff Member'}</span>
-                  </div>
+                <div style={feedbackStatsBadge}>
+                  <span>Average Rating: </span>
+                  <strong style={averageRating}>
+                    {feedbacks.length > 0
+                      ? (feedbacks.reduce((acc, f) => acc + f.rating, 0) / feedbacks.length).toFixed(1)
+                      : '0.0'} / 5
+                  </strong>
                 </div>
+              </div>
 
-                {!isEditingProfile ? (
-                  <div style={profileDetailsView}>
-                    <div style={detailRow}>
-                      <span style={detailLabel}>Email</span>
-                      <span style={detailValue}>{staff.email}</span>
-                    </div>
-                    <div style={detailRow}>
-                      <span style={detailLabel}>Phone</span>
-                      <span style={detailValue}>{staff.phone || "Not set"}</span>
-                    </div>
-
-                    <button
-                      style={editProfileButton}
-                      onClick={() => setIsEditingProfile(true)}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#2980b9'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = '#3498db'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                    >
-                      ✏️ Edit Profile
-                    </button>
+              <div style={feedbackGrid}>
+                {feedbacks.length === 0 ? (
+                  <div style={emptyStateCard}>
+                    <span style={{ fontSize: '40px' }}>💬</span>
+                    <p>No feedback received yet.</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleUpdateProfile} style={profileEditForm}>
-                    <div style={formGroup}>
-                      <label style={formLabel}>Full Name</label>
-                      <input
-                        style={formInput}
-                        value={profileForm.name}
-                        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div style={formGroup}>
-                      <label style={formLabel}>Email</label>
-                      <input
-                        style={formInput}
-                        type="email"
-                        value={profileForm.email}
-                        onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div style={formGroup}>
-                      <label style={formLabel}>Phone</label>
-                      <input
-                        style={formInput}
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        placeholder="+1 234 567 8900"
-                      />
-                    </div>
+                  feedbacks.map((f, idx) => (
+                    <div
+                      key={f.id}
+                      style={{
+                        ...feedbackCard,
+                        animation: `slideInRight 0.4s ease ${idx * 0.08}s both`,
+                        borderTop: `4px solid ${f.rating >= 4 ? '#2ecc71' :
+                          f.rating >= 3 ? '#f39c12' :
+                            '#e74c3c'
+                          }`,
+                      }}
+                    >
+                      <div style={feedbackCardHeader}>
+                        <div style={feedbackRatingLarge}>
+                          {f.rating === 1 && "😠"}
+                          {f.rating === 2 && "😞"}
+                          {f.rating === 3 && "😐"}
+                          {f.rating === 4 && "😊"}
+                          {f.rating === 5 && "🔥"}
+                          <span style={feedbackRatingNumber}>{f.rating}/5</span>
+                        </div>
+                        <span style={feedbackOrderId}>Order #{f.order_id}</span>
+                      </div>
 
-                    <div style={formActions}>
-                      <button
-                        type="button"
-                        style={cancelButton}
-                        onClick={() => {
-                          setIsEditingProfile(false);
-                          setProfileForm({
-                            name: staff.name,
-                            email: staff.email,
-                            phone: staff.phone || ""
-                          });
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        style={saveButton}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#27ae60'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = '#2ecc71'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                      >
-                        💾 Save Changes
-                      </button>
+                      <p style={feedbackCommentLarge}>"{f.comment}"</p>
+
+                      <div style={feedbackCardFooter}>
+                        <span style={feedbackDate}>
+                          {new Date(f.created_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span style={feedbackCustomer}>
+                          {f.customer_name || 'Customer'}
+                        </span>
+                      </div>
                     </div>
-                  </form>
+                  ))
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
-        {/* ========== HELP CENTER PAGE ========== */}
-        {activeTab === "help" && (
-          <div style={{ ...fadeAnim, ...helpPageStyle }}>
-            <div style={pageHeader}>
-              <div>
-                <h2 style={pageTitle}>🆘 Help Center</h2>
-                <p style={pageSubtitle}>Chat with admin for instant support</p>
-              </div>
-              <div style={chatStatusBadge}>
-                <span style={onlineDot}></span>
-                Online Support
-              </div>
-            </div>
 
-            <div style={chatContainer}>
-              <div style={chatSidebar}>
-                <div style={chatProfile}>
-                  <div style={chatAvatar}>👨‍💼</div>
-                  <div style={chatInfo}>
-                    <h4 style={chatName}>Admin Support</h4>
-                    <span style={chatRole}>Typically replies in minutes</span>
+        {/* ========== PROFILE PAGE ========== */}
+        {
+          activeTab === "profile" && (
+            <div style={{ ...fadeAnim, ...profilePageStyle }}>
+              <div style={pageHeader}>
+                <div>
+                  <h2 style={pageTitle}>👤 My Profile</h2>
+                  <p style={pageSubtitle}>Manage your personal information</p>
+                </div>
+              </div>
+
+              <div style={profileContainer}>
+                <div style={profileCard}>
+                  <div style={profileHeader}>
+                    <div style={profileAvatarLarge}>
+                      {staff.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 style={profileNameLarge}>{staff.name}</h3>
+                      <span style={roleBadge}>{staff.role === 'admin' ? 'Administrator' : 'Staff Member'}</span>
+                    </div>
                   </div>
-                </div>
-                <div style={chatQuickReplies}>
-                  <h5 style={quickRepliesTitle}>Quick Help</h5>
-                  <button style={quickReplyBtn} onClick={() => setNewMessage("I need help with an order")}>
-                    📦 Order help
-                  </button>
-                  <button style={quickReplyBtn} onClick={() => setNewMessage("I have a question about inventory")}>
-                    📊 Inventory
-                  </button>
-                  <button style={quickReplyBtn} onClick={() => setNewMessage("Can you assist me with a customer issue?")}>
-                    👥 Customer
-                  </button>
-                </div>
-              </div>
 
-              <div style={chatMain}>
-                <div style={chatMessagesContainer}>
-                  {chatMessages.length === 0 ? (
-                    <div style={chatEmptyState}>
-                      <div style={chatEmptyIcon}>💬</div>
-                      <h4>Start a conversation</h4>
-                      <p>Send a message to begin chatting with admin</p>
+                  {!isEditingProfile ? (
+                    <div style={profileDetailsView}>
+                      <div style={detailRow}>
+                        <span style={detailLabel}>Email</span>
+                        <span style={detailValue}>{staff.email}</span>
+                      </div>
+                      <div style={detailRow}>
+                        <span style={detailLabel}>Phone</span>
+                        <span style={detailValue}>{staff.phone || "Not set"}</span>
+                      </div>
+
+                      <button
+                        style={editProfileButton}
+                        onClick={() => setIsEditingProfile(true)}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#2980b9'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#3498db'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                      >
+                        ✏️ Edit Profile
+                      </button>
                     </div>
                   ) : (
-                    <>
-                      {chatMessages.map((msg, idx) => (
-                        <div
-                          key={msg.id}
-                          style={{
-                            display: "flex",
-                            justifyContent: msg.is_from_me ? "flex-end" : "flex-start",
-                            marginBottom: "20px",
+                    <form onSubmit={handleUpdateProfile} style={profileEditForm}>
+                      <div style={formGroup}>
+                        <label style={formLabel}>Full Name</label>
+                        <input
+                          style={formInput}
+                          value={profileForm.name}
+                          onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div style={formGroup}>
+                        <label style={formLabel}>Email</label>
+                        <input
+                          style={formInput}
+                          type="email"
+                          value={profileForm.email}
+                          onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div style={formGroup}>
+                        <label style={formLabel}>Phone</label>
+                        <input
+                          style={formInput}
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                          placeholder="+1 234 567 8900"
+                        />
+                      </div>
+
+                      <div style={formActions}>
+                        <button
+                          type="button"
+                          style={cancelButton}
+                          onClick={() => {
+                            setIsEditingProfile(false);
+                            setProfileForm({
+                              name: staff.name,
+                              email: staff.email,
+                              phone: staff.phone || ""
+                            });
                           }}
                         >
-                          {!msg.is_from_me && (
-                            <div style={chatAvatarSmall}>👨‍💼</div>
-                          )}
-                          <div style={{
-                            ...chatBubble,
-                            background: msg.is_from_me ? "#3498db" : "#f1f1f1",
-                            color: msg.is_from_me ? "white" : "#333",
-                            borderBottomRightRadius: msg.is_from_me ? "5px" : "18px",
-                            borderBottomLeftRadius: msg.is_from_me ? "18px" : "5px",
-                          }}>
-                            <div style={chatMessageText}>{msg.message}</div>
-                            <div style={chatTimestamp}>
-                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={chatEndRef} />
-                    </>
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          style={saveButton}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#27ae60'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#2ecc71'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                          💾 Save Changes
+                        </button>
+                      </div>
+                    </form>
                   )}
-                </div>
-
-                <div style={chatInputContainer}>
-                  <input
-                    value={newMessage}
-                    onChange={e => setNewMessage(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Type your message here..."
-                    style={chatInput}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    style={chatSendButton}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#1a4a62'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#0a3a52'; e.currentTarget.style.transform = 'scale(1)'; }}
-                  >
-                    Send
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )
+        }
+
+        {/* ========== HELP CENTER PAGE ========== */}
+        {
+          activeTab === "help" && (
+            <div style={{ ...fadeAnim, ...helpPageStyle }}>
+              <div style={pageHeader}>
+                <div>
+                  <h2 style={pageTitle}>🆘 Help Center</h2>
+                  <p style={pageSubtitle}>Chat with admin for instant support</p>
+                </div>
+                <div style={chatStatusBadge}>
+                  <span style={onlineDot}></span>
+                  Online Support
+                </div>
+              </div>
+
+              <div style={chatContainer}>
+                <div style={chatSidebar}>
+                  <div style={chatProfile}>
+                    <div style={chatAvatar}>👨‍💼</div>
+                    <div style={chatInfo}>
+                      <h4 style={chatName}>Admin Support</h4>
+                      <span style={chatRole}>Typically replies in minutes</span>
+                    </div>
+                  </div>
+                  <div style={chatQuickReplies}>
+                    <h5 style={quickRepliesTitle}>Quick Help</h5>
+                    <button style={quickReplyBtn} onClick={() => setNewMessage("I need help with an order")}>
+                      📦 Order help
+                    </button>
+                    <button style={quickReplyBtn} onClick={() => setNewMessage("I have a question about inventory")}>
+                      📊 Inventory
+                    </button>
+                    <button style={quickReplyBtn} onClick={() => setNewMessage("Can you assist me with a customer issue?")}>
+                      👥 Customer
+                    </button>
+                  </div>
+                </div>
+
+                <div style={chatMain}>
+                  <div style={chatMessagesContainer}>
+                    {chatMessages.length === 0 ? (
+                      <div style={chatEmptyState}>
+                        <div style={chatEmptyIcon}>💬</div>
+                        <h4>Start a conversation</h4>
+                        <p>Send a message to begin chatting with admin</p>
+                      </div>
+                    ) : (
+                      <>
+                        {chatMessages.map((msg, idx) => (
+                          <div
+                            key={msg.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: msg.is_from_me ? "flex-end" : "flex-start",
+                              marginBottom: "20px",
+                            }}
+                          >
+                            {!msg.is_from_me && (
+                              <div style={chatAvatarSmall}>👨‍💼</div>
+                            )}
+                            <div style={{
+                              ...chatBubble,
+                              background: msg.is_from_me ? "#3498db" : "#f1f1f1",
+                              color: msg.is_from_me ? "white" : "#333",
+                              borderBottomRightRadius: msg.is_from_me ? "5px" : "18px",
+                              borderBottomLeftRadius: msg.is_from_me ? "18px" : "5px",
+                            }}>
+                              <div style={chatMessageText}>{msg.message}</div>
+                              <div style={chatTimestamp}>
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={chatEndRef} />
+                      </>
+                    )}
+                  </div>
+
+                  <div style={chatInputContainer}>
+                    <input
+                      value={newMessage}
+                      onChange={e => setNewMessage(e.target.value)}
+                      onKeyPress={e => e.key === 'Enter' && sendMessage()}
+                      placeholder="Type your message here..."
+                      style={chatInput}
+                    />
+                    <button
+                      onClick={sendMessage}
+                      style={chatSendButton}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#1a4a62'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#0a3a52'; e.currentTarget.style.transform = 'scale(1)'; }}
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        }
+      </div >
 
       {alertMsg && (
         <CustomAlert
@@ -1240,7 +1276,7 @@ function StaffDashboard() {
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,152,219,0.4); } 70% { box-shadow: 0 0 0 10px rgba(52,152,219,0); } 100% { box-shadow: 0 0 0 0 rgba(52,152,219,0); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </div >
   );
 }
 
